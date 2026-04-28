@@ -14,7 +14,7 @@ paths:
 - Producer calls `http://data-simulator:8000/events/single` to get event data. Do NOT generate events inline inside producer.py.
 
 ## Topic Routing
-- ALL events go to `behavior_events` (full clickstream funnel, 13 event types).
+- ALL events go to `behavior_events` (full clickstream funnel, 14 event types).
 - `transaction_events` topic removed — transaction/order data is sourced from MySQL via batch ETL.
 
 ## Consumer Pattern
@@ -33,19 +33,20 @@ paths:
 
 | event_id | event_type | Funnel stage |
 |----------|-----------|-------------|
-| 1 | search | Upper |
-| 2 | view_item | Upper |
-| 3 | select_item_variant | Upper |
-| 4 | add_to_cart | Mid |
-| 5 | view_cart | Mid |
-| 6 | remove_from_cart | Mid (negative signal) |
-| 7 | update_cart_item | Mid |
-| 8 | begin_checkout | Lower |
-| 9 | add_shipping_info | Lower |
-| 10 | add_coupon | Lower |
-| 11 | add_payment_info | Lower |
-| 12 | place_order | Lower |
-| 13 | payment_callback | Lower (system) |
+| 1 | home_screen_view | Upper |
+| 2 | search | Upper |
+| 3 | view_item | Upper |
+| 4 | select_item_variant | Upper |
+| 5 | add_to_cart | Mid |
+| 6 | view_cart | Mid |
+| 7 | remove_from_cart | Mid (negative signal) |
+| 8 | update_cart_item | Mid |
+| 9 | begin_checkout | Lower |
+| 10 | add_shipping_info | Lower |
+| 11 | add_coupon | Lower |
+| 12 | add_payment_info | Lower |
+| 13 | place_order | Lower |
+| 14 | payment_callback | Lower (system) |
 
 ## data-simulator API Contract
 - `GET /events/single` — returns one random event JSON.

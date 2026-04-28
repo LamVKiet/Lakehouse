@@ -39,7 +39,7 @@ def parse_to_bronze(batch_df):
         .select(
             col("data.event_uuid"), col("data.event_id"), col("data.event_type"),
             col("data.timestamp").alias("event_ts"), col("data.log_date").cast("date").alias("log_date"),
-            col("data.created_at"), col("data.user_id"), col("data.device_os"), col("data.app_version"),
+            col("data.created_at"), col("data.session_id"), col("data.user_id"), col("data.device_os"), col("data.app_version"),
             to_json(col("data.metadata")).alias("raw_metadata"),  # Keep as raw JSON — Bronze is immutable source of truth
             col("_kafka_topic"), col("_kafka_partition"), col("_kafka_offset"),
             current_timestamp().alias("_ingested_at"),

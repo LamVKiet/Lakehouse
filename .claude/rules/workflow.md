@@ -38,8 +38,12 @@ kafka-crash-course/
 │   │   ├── batch_silver_nou_backfill.py         # [BACKFILL]  Bronze -> silver.nou (all history, run once)
 │   │   ├── batch_silver_transactions.py         # [BATCH T-1] Bronze + silver.nou -> silver.transactions
 │   │   ├── batch_silver_transactions_backfill.py # [BACKFILL] Bronze + silver.nou -> silver.transactions (run once)
-│   │   ├── batch_silver_transform.py           # [BATCH T-1] Bronze -> Silver events (MERGE INTO)
-│   │   ├── batch_gold_aggregate.py             # [BATCH T-1] Silver -> Gold (4 tables)
+│   │   ├── batch_silver_events_discovery.py    # [BATCH T-1] Bronze -> silver.events_discovery (event_id 1-4)
+│   │   ├── batch_silver_events_cart.py         # [BATCH T-1] Bronze -> silver.events_cart (event_id 5-8)
+│   │   ├── batch_silver_events_checkout.py     # [BATCH T-1] Bronze -> silver.events_checkout (event_id 9-14)
+│   │   ├── batch_gold_events_discovery.py      # [BATCH T-1] Silver events_discovery -> Gold
+│   │   ├── batch_gold_events_cart.py           # [BATCH T-1] Silver events_cart -> Gold
+│   │   ├── batch_gold_events_checkout.py       # [BATCH T-1] Silver events_checkout -> Gold
 │   │   └── delta_utils.py                      # Spark + S3/Delta + MySQL JDBC shared utils
 │   └── schemas/
 │       ├── event_schema.py            # Kafka event StructType
@@ -50,7 +54,7 @@ kafka-crash-course/
 │       ├── dag_bronze_sql.py          # DAG: MySQL -> Bronze (02:00, 5 tasks)
 │       ├── dag_bronze_to_silver.py    # DAG: Bronze -> Silver (02:30, nou >> transactions)
 │       ├── dag_backfill_silver.py     # DAG: Backfill Silver (manual trigger, run once)
-│       └── dag_silver_to_gold.py      # DAG: Silver -> Gold (03:00)
+│       └── dag_silver_to_gold.py      # DAG: Silver -> Gold (03:00, 4 tasks: events_discovery, events_cart, events_checkout, transactions)
 │
 ├── infra/
 │   ├── mysql/

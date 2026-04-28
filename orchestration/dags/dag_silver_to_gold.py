@@ -57,9 +57,13 @@ dag = DAG(
 )
 
 start = DummyOperator(task_id="START", dag=dag)
-gold_events       = create_spark_task(dag, "batch_gold_aggregate.py")
-gold_transactions = create_spark_task(dag, "batch_gold_transactions.py")
+gold_events_discovery = create_spark_task(dag, "batch_gold_events_discovery.py")
+gold_events_cart      = create_spark_task(dag, "batch_gold_events_cart.py")
+gold_events_checkout  = create_spark_task(dag, "batch_gold_events_checkout.py")
+gold_transactions     = create_spark_task(dag, "batch_gold_transactions.py")
 end   = DummyOperator(task_id="END", dag=dag)
 
-start >> gold_events       >> end
-start >> gold_transactions >> end
+start >> gold_events_discovery >> end
+start >> gold_events_cart      >> end
+start >> gold_events_checkout  >> end
+start >> gold_transactions     >> end

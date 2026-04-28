@@ -57,7 +57,9 @@ dag = DAG(
 )
 
 start  = DummyOperator(task_id="START", dag=dag)
-silver_events       = create_spark_task(dag, "batch_silver_transform.py")
+silver_events_discovery = create_spark_task(dag, "batch_silver_events_discovery.py")
+silver_events_cart      = create_spark_task(dag, "batch_silver_events_cart.py")
+silver_events_checkout  = create_spark_task(dag, "batch_silver_events_checkout.py")
 silver_customers    = create_spark_task(dag, "batch_silver_customers.py")
 silver_category     = create_spark_task(dag, "batch_silver_category.py")
 silver_products     = create_spark_task(dag, "batch_silver_products.py")
@@ -66,8 +68,10 @@ silver_nou          = create_spark_task(dag, "batch_silver_nou.py")
 silver_transactions = create_spark_task(dag, "batch_silver_transactions.py")
 end    = DummyOperator(task_id="END", dag=dag)
 
-# Parallel: events + dim tables; sequential: category -> products (JOIN), nou -> transactions
-start >> silver_events >> end
+# Parallel: 3 events buckets + dim tables; sequential: category -> products (JOIN), nou -> transactions
+start >> silver_events_discovery >> end
+start >> silver_events_cart >> end
+start >> silver_events_checkout >> end
 start >> silver_customers >> end
 start >> silver_category >> silver_products >> end
 start >> silver_branches >> end

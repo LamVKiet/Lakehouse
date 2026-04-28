@@ -9,26 +9,29 @@ import random
 from datetime import datetime
 
 EVENT_TYPES = {
-    1: "search",
-    2: "view_item",
-    3: "select_item_variant",
-    4: "add_to_cart",
-    5: "view_cart",
-    6: "remove_from_cart",
-    7: "update_cart_item",
-    8: "begin_checkout",
-    9: "add_shipping_info",
-    10: "add_coupon",
-    11: "add_payment_info",
-    12: "place_order",
-    13: "payment_callback",
+    1: "home_screen_view",
+    2: "search",
+    3: "view_item",
+    4: "select_item_variant",
+    5: "add_to_cart",
+    6: "view_cart",
+    7: "remove_from_cart",
+    8: "update_cart_item",
+    9: "begin_checkout",
+    10: "add_shipping_info",
+    11: "add_coupon",
+    12: "add_payment_info",
+    13: "place_order",
+    14: "payment_callback",
 }
 
 # Reverse lookup: event_type string -> event_id
 EVENT_TYPE_TO_ID = {v: k for k, v in EVENT_TYPES.items()}
 
 # Traffic weights — funnel narrows from browse (top) to purchase (bottom)
-EVENT_WEIGHTS = [25, 25, 15, 10, 6, 2, 2, 5, 3, 2, 2, 2, 1]
+EVENT_WEIGHTS = [30, 25, 25, 15, 10, 6, 2, 2, 5, 3, 2, 2, 2, 1]
+
+APP_VERSIONS = ["1.0.0", "1.1.0", "1.1.5", "2.0.0-beta"]
 
 PRODUCTS = [
     {"id": "prd_001", "name": "Áo thun Basic", "base_price": 250000},
@@ -59,6 +62,8 @@ def _random_product():
 
 def _build_metadata(event_type: str) -> dict:
     """Build event-specific metadata dict."""
+    if event_type == "home_screen_view":
+        return {"app_version": "1.0.0"}
     if event_type == "search":
         return {"search_keyword": random.choice(SEARCH_KEYWORDS), "result_count": random.randint(0, 50)}
     if event_type == "view_item":
@@ -158,6 +163,7 @@ def generate_event() -> dict:
         "timestamp": int(now.timestamp()),
         "log_date": now.strftime("%Y-%m-%d"),
         "created_at": now.isoformat(),
+        "session_id": str(uuid.uuid4()),
         "user_id": user_id,
         "device_os": random.choice(["iOS", "Android"]),
         "app_version": random.choice(["1.0.0", "1.1.0", "1.1.5", "2.0.0-beta"]),

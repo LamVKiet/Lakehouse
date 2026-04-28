@@ -10,6 +10,12 @@ from pyspark.sql.types import StructType, StructField, StringType, IntegerType, 
 
 # Superset schema for the nested metadata object inside each event
 METADATA_SCHEMA = StructType([
+    # context & discovery — track user journey origin and product position on list
+    StructField("source_screen", StringType()),   # e.g. "home", "search_results", "flash_sale_page"
+    StructField("source_element", StringType()),  # e.g. "recommendation_list", "search_bar", "banner_top"
+    StructField("position", IntegerType()),       # product position on list (1, 2, 3...) when user clicks
+    # home_screen_view
+    StructField("app_version", StringType()),
     # search
     StructField("search_keyword", StringType()),
     StructField("result_count", IntegerType()),
@@ -61,6 +67,7 @@ EVENT_SCHEMA = StructType([
     StructField("timestamp", LongType()),
     StructField("log_date", StringType()),
     StructField("created_at", StringType()),
+    StructField("session_id", StringType()),
     StructField("user_id", StringType()),
     StructField("device_os", StringType()),
     StructField("app_version", StringType()),
