@@ -1,0 +1,67 @@
+# Heavy image shared by Spark cluster, streaming jobs, Jupyter, and Airflow.
+# Differentiates roles via the "command" field in docker-compose.
+#
+# Includes: Python 3.12 + Java 17 + Spark 3.4.1 + Delta Lake + S3A + Kafka connector.
+# Optional: Airflow (enabled via INSTALL_AIRFLOW build arg).
+FROM python:3.12-slim-bookworm
+
+# System dependencies: Java runtime, curl for jar downloads, procps for jps
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends openjdk-17-jre-headless curl procps && \
+    apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Download Apache Spark
+RUN curl -L -o /tmp/spark.tgz \
+      https://archive.apache.org/dist/spark/spark-3.4.1/spark-3.4.1-bin-hadoop3.tgz && \
+    tar -xzf /tmp/spark.tgz -C /opt && \
+    mv /opt/spark-3.4.1-bin-hadoop3 /opt/spark && \
+    rm -f /tmp/spark.tgz
+
+# Download connector jars:
+#   - Kafka connector for Spark Structured Streaming
+#   - Delta Lake core + storage
+#   - Hadoop AWS (S3A filesystem)
+#   - AWS Java SDK bundle
+RUN curl -L -o /opt/spark/jars/spark-sql-kafka-0-10_2.12-3.4.1.jar \
+      https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/3.4.1/spark-sql-kafka-0-10_2.12-3.4.1.jar && \
+    curl -L -o /opt/spark/jars/kafka-clients-3.4.1.jar \
+      https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/3.4.1/kafka-clients-3.4.1.jar && \
+    curl -L -o /opt/spark/jars/spark-token-provider-kafka-0-10_2.12-3.4.1.jar \
+      https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/3.4.1/spark-token-provider-kafka-0-10_2.12-3.4.1.jar && \
+    curl -L -o /opt/spark/jars/commons-pool2-2.11.1.jar \
+      https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.11.1/commons-pool2-2.11.1.jar && \
+    curl -L -o /opt/spark/jars/delta-spark_2.12-3.2.0.jar \
+      https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.2.0/delta-spark_2.12-3.2.0.jar && \
+    curl -L -o /opt/spark/jars/delta-storage-3.2.0.jar \
+      https://repo1.maven.org/maven2/io/delta/delta-storage/3.2.0/delta-storage-3.2.0.jar && \
+    curl -L -o /opt/spark/jars/hadoop-aws-3.3.4.jar \
+      https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar && \
+    curl -L -o /opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar \
+      https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar && \
+    curl -L -o /opt/spark/jars/mysql-connector-j-8.0.33.jar \
+      https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.0.33/mysql-connector-j-8.0.33.jar
+
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV SPARK_HOME=/opt/spark
+ENV PATH=$JAVA_HOME/bin:$SPARK_HOME/bin:$PATH
+ENV PYTHONPATH=/app
+
+# Core Python packages for Spark + Delta + Jupyter
+RUN pip install --no-cache-dir \
+    pyspark==3.4.1 \
+    delta-spark==3.2.0 \
+    confluent-kafka \
+    boto3 \
+    ipykernel \
+    notebook \
+    jupyterlab
+
+# Optional: Airflow (only installed when building the airflow service)
+ARG INSTALL_AIRFLOW=false
+RUN if [ "$INSTALL_AIRFLOW" = "true" ]; then \
+        pip install --no-cache-dir \
+            "apache-airflow==2.9.3" \
+            apache-airflow-providers-apache-spark; \
+    fi
+
+WORKDIR /app

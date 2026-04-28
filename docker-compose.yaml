@@ -1,0 +1,295 @@
+services:
+  # =========================================
+  # KAFKA CLUSTER (2 NODES - KRaft mode)
+  # =========================================
+  kafka-1:
+    image: confluentinc/cp-kafka:${KAFKA_VERSION}
+    container_name: kafka-1
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: '${CLUSTER_ID}'
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:29093,2@kafka-2:29093
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:19092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-1:19092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_KRAFT_MODE: 'true'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 2
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - kafka_1_data:/var/lib/kafka/data
+
+  kafka-2:
+    image: confluentinc/cp-kafka:${KAFKA_VERSION}
+    container_name: kafka-2
+    ports:
+      - "9094:9094"
+    environment:
+      KAFKA_NODE_ID: 2
+      CLUSTER_ID: '${CLUSTER_ID}'
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:29093,2@kafka-2:29093
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:19094,EXTERNAL://0.0.0.0:9094,CONTROLLER://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-2:19094,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_KRAFT_MODE: 'true'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 2
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - kafka_2_data:/var/lib/kafka/data
+
+  # =========================================
+  # KAFKA UI
+  # =========================================
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:19092,kafka-2:19094
+
+  # =========================================
+  # SPARK CLUSTER (Master + Worker)
+  # =========================================
+  spark-master:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    container_name: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --webui-port 8081
+    ports:
+      - "8081:8081"   # Spark Master UI
+      - "7077:7077"   # Spark Master RPC
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8081"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  spark-worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    container_name: spark-worker-1
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker --webui-port 8082 spark://spark-master:7077
+    ports:
+      - "8082:8082"   # Spark Worker UI
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_WORKER_MEMORY: "1g"
+      SPARK_WORKER_CORES: "2"
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8082"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================
+  # SPARK STREAMING: Kafka -> S3/Delta Bronze
+  # =========================================
+  spark-bronze-job:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    container_name: spark-bronze-job
+    command: >
+      /opt/spark/bin/spark-submit
+      --master spark://spark-master:7077
+      --deploy-mode client
+      --driver-memory 512m
+      --executor-memory 512m
+      --executor-cores 1
+      --total-executor-cores 1
+      --conf spark.executor.memoryOverhead=256m
+      --conf spark.driver.host=spark-bronze-job
+      --conf spark.ui.port=4040
+      /app/processing/spark_jobs/streaming_to_bronze.py
+    ports:
+      - "4040:4040"   # Spark Application UI (driver runs here in client mode)
+    volumes:
+      - ./processing:/app/processing
+      - spark_checkpoints:/checkpoints
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka-1:19092,kafka-2:19094"
+      CHECKPOINT_BASE: "/checkpoints/bronze"
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      S3_BUCKET: ${S3_BUCKET}
+    depends_on:
+      spark-master:
+        condition: service_healthy
+      spark-worker-1:
+        condition: service_healthy
+      kafka-1:
+        condition: service_started
+    restart: on-failure
+
+  # =========================================
+  # MYSQL (Backend operational data — raw SQL layer)
+  # =========================================
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: ${MYSQL_DB}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./infra/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # =========================================
+  # DATA SIMULATOR (FastAPI)
+  # =========================================
+  data-simulator:
+    build: .
+    container_name: data-simulator
+    ports:
+      - "${SIMULATOR_PORT:-8000}:8000"
+    command: ["uvicorn", "ingestion.simulator.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================
+  # PYTHON PRODUCER (calls simulator -> Kafka)
+  # =========================================
+  python-producer:
+    build: .
+    container_name: python-producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka-1:19092,kafka-2:19094"
+      SIMULATOR_URL: "http://data-simulator:8000"
+    depends_on:
+      data-simulator:
+        condition: service_healthy
+      kafka-1:
+        condition: service_started
+      kafka-2:
+        condition: service_started
+    command: ["python", "-u", "ingestion/producer/movie_events_producer.py"]
+
+  # =========================================
+  # JUPYTER NOTEBOOK (PySpark + Delta Lake)
+  # =========================================
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    container_name: jupyter-lab
+    command: jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token=${JUPYTER_TOKEN}
+    ports:
+      - "8888:8888"
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      JUPYTER_TOKEN: "${JUPYTER_TOKEN}"
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      S3_BUCKET: ${S3_BUCKET}
+    volumes:
+      - ./notebooks:/app/notebooks
+      - ./processing:/app/processing
+    depends_on:
+      - kafka-1
+      - spark-master
+
+  # =========================================
+  # TRINO (Query engine for Delta Lake / Glue)
+  # =========================================
+  trino:
+    image: trinodb/trino:435
+    container_name: trino
+    ports:
+      - "8090:8080"
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+    volumes:
+      - ./infra/trino/config.properties:/etc/trino/config.properties
+      - ./infra/trino/node.properties:/etc/trino/node.properties
+      - ./infra/trino/catalog/lakehouse.properties:/etc/trino/catalog/lakehouse.properties
+
+  # =========================================
+  # AIRFLOW (Batch orchestration: Silver + Gold)
+  # =========================================
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+      args:
+        INSTALL_AIRFLOW: "true"
+    container_name: airflow
+    command: >
+      bash -c "
+        mkdir -p /opt/airflow;
+        airflow db migrate;
+        airflow users create --username admin --password admin --firstname Admin --lastname Admin --role Admin --email admin@localhost || true;
+        (while true; do airflow scheduler; echo 'Scheduler exited, restarting...'; sleep 5; done) &
+        exec airflow webserver --port 8080
+      "
+    ports:
+      - "8085:8080"
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+      AIRFLOW__CORE__FERNET_KEY: "0iabGv98nVF-CXMbodDIHlQyTnk3RmKD104uCGpnFGQ="
+      SPARK_HOME: /opt/spark
+      KAFKA_BOOTSTRAP_SERVERS: "kafka-1:19092,kafka-2:19094"
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      S3_BUCKET: ${S3_BUCKET}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_DB: ${MYSQL_DB}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./orchestration/dags:/opt/airflow/dags
+      - ./processing:/app/processing
+      - airflow_logs:/opt/airflow/logs
+    depends_on:
+      spark-master:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+volumes:
+  kafka_1_data:
+  kafka_2_data:
+  spark_checkpoints:
+  airflow_logs:
+  mysql_data:
