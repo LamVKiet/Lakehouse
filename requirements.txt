@@ -1,0 +1,9 @@
+confluent-kafka
+aiokafka
+aiohttp
+lz4
+cramjam
+fastapi
+uvicorn[standard]
+requests
+mysql-connector-python

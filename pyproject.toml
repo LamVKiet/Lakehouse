@@ -1,0 +1,56 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["notebooks", "fallback"]
+
+[tool.ruff.lint]
+# E/F = pyflakes+pycodestyle, I = isort, UP = pyupgrade, B = bugbear, SIM = simplify.
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# E741: ambiguous var names (l1m_ym etc.); E401: combined `import os, sys` — both
+# are deliberate house style across this codebase.
+ignore = ["E741", "E401"]
+
+[tool.ruff.lint.per-file-ignores]
+# Spark jobs use `sys.path.insert()` before package imports (load-bearing for
+# spark-submit), which trips import-sorting (I001) and import-position (E402).
+"processing/spark_jobs/*.py" = ["I001", "E402"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "."
+# tests/ has no __init__.py (pytest importlib mode) and two conftest.py files
+# (tests/ + tests/silver/). These let mypy resolve them as tests.conftest /
+# tests.silver.conftest instead of colliding on the bare module name "conftest".
+namespace_packages = true
+explicit_package_bases = true
+# PySpark/delta/chispa ship partial or no stubs — don't fail on missing imports.
+ignore_missing_imports = true
+# Pragmatic for a learning project: don't force annotations on every def.
+disallow_untyped_defs = false
+
+# delta_utils is legacy shared I/O code — type-check our jobs that import it,
+# but don't gate on its internals.
+[[tool.mypy.overrides]]
+module = "processing.spark_jobs.delta_utils"
+ignore_errors = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+# importlib mode: required once the suite has same-named files across layers
+# (e.g. tests/silver/test_transactions.py + a future tests/gold/test_transactions.py).
+# It also lets us drop tests/__init__.py — the modern pytest-recommended layout.
+addopts = "--import-mode=importlib"
+
+[tool.coverage.run]
+# Glob the refactored transform jobs instead of listing each by hand. Coverage only
+# reports files actually imported by the suite, so legacy batch_silver_*backfill/_cdc
+# jobs (never imported) are excluded automatically — no maintenance when adding a job.
+include = ["processing/spark_jobs/batch_silver_*.py", "processing/spark_jobs/batch_gold_*.py"]
+
+[tool.coverage.report]
+# Ratchet floor, not a target. Totals here include each job's untested main() I/O half
+# (~50% of every file), so the realistic ceiling is well under 100%. Set just below the
+# current ~30% so the build fails if coverage REGRESSES; raise it as tests are added.
+fail_under = 28
+show_missing = true

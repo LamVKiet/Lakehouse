@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Fast gate: lint + format + type-check. No JVM needed → fails early & cheap.
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      # Delegate to the Makefile so the lint/type-check file list lives in ONE place
+      # (Makefile JOBS), not duplicated here. Lint covers the refactored jobs + tests;
+      # format-check is tests-only (jobs keep their deliberate compact style).
+      - name: Lint (ruff)
+        run: make lint
+
+      - name: Format check (ruff)
+        run: make format
+
+      - name: Type check (mypy)
+        run: make typecheck
+
+  # Security gate: dependency CVEs + secret leaks. No JVM, independent of quality so
+  # both fast gates run in parallel. Either failing turns the build red.
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitleaks scans full git history, not just the tip commit
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      # SCA — same `pip-audit` invocation as `make audit` (single source of truth).
+      - name: Dependency audit (pip-audit)
+        run: make audit
+
+      # Secret scanning — blocks AWS keys / MySQL creds from ever entering git history.
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Runs only if quality passed. PySpark needs a JVM → set up Java 17 here.
+  test:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java (PySpark needs a JVM)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      # Coverage gate (fail_under) is enforced via pyproject — a regression fails here.
+      - name: Run tests
+        run: make test
+
+  # Proves the runtime images actually build (green PySpark tests don't cover Dockerfiles).
+  # Build only — no registry push yet. Gated behind quality to avoid wasting a heavy build.
+  docker-build:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build app image (Dockerfile)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          tags: lakehouse-app:ci
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,scope=app,mode=max
+
+      - name: Build Spark image (Dockerfile.spark)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.spark
+          push: false
+          tags: lakehouse-spark:ci
+          cache-from: type=gha,scope=spark
+          cache-to: type=gha,scope=spark,mode=max

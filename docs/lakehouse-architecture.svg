@@ -1,0 +1,128 @@
+<svg viewBox="0 0 1120 880" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrowB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#60a5fa"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.10"/>
+    </filter>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+      .mono { font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Menlo, Consolas, monospace; }
+      .lbl { fill:#94a3b8; font-size:11px; font-weight:700; letter-spacing:1.3px; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1120" height="880" fill="#ffffff"/>
+  <rect x="14" y="14" width="1092" height="852" rx="18" fill="none" stroke="#eef2f6" stroke-width="1.5"/>
+
+  <!-- Title -->
+  <text x="560" y="50" text-anchor="middle" font-size="25" font-weight="600" fill="#1e293b">Data Lakehouse &#8212; Real-time CDC &amp; Event-Streaming Platform</text>
+  <text x="560" y="76" text-anchor="middle" font-size="13.5" fill="#64748b">End-to-end medallion lakehouse  &#183;  high-throughput streaming ingestion  &#183;  T-1 analytics for Finance &#183; Ops &#183; Growth</text>
+
+  <!-- ============ SOURCES ============ -->
+  <text x="40" y="112" class="lbl">SOURCES</text>
+  <rect x="40"  y="122" width="320" height="62" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="200" y="150" text-anchor="middle" font-size="15" font-weight="600" fill="#334155">MySQL &#183; Application Backend</text>
+  <text x="200" y="170" text-anchor="middle" font-size="12" class="mono" fill="#64748b">transactions</text>
+
+  <rect x="400" y="122" width="320" height="62" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="560" y="150" text-anchor="middle" font-size="15" font-weight="600" fill="#334155">Frontend Clickstream</text>
+  <text x="560" y="170" text-anchor="middle" font-size="12" class="mono" fill="#64748b">FastAPI event simulator</text>
+
+  <rect x="760" y="122" width="320" height="62" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="920" y="150" text-anchor="middle" font-size="15" font-weight="600" fill="#334155">MySQL &#183; Dimensions</text>
+  <text x="920" y="170" text-anchor="middle" font-size="12" class="mono" fill="#64748b">customers &#183; products &#183; branches</text>
+
+  <!-- source -> ingestion -->
+  <path d="M200,184 L200,220" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M560,184 L560,220" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M920,184 L920,220" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============ INGESTION ============ -->
+  <text x="40" y="210" class="lbl">INGESTION</text>
+  <rect x="40"  y="222" width="320" height="104" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="200" y="250" text-anchor="middle" font-size="14" font-weight="600" fill="#1d4ed8">Debezium CDC  &#8594;  Kafka</text>
+  <text x="200" y="274" text-anchor="middle" font-size="13.5" fill="#1d4ed8">Spark Structured Streaming</text>
+  <text x="200" y="300" text-anchor="middle" font-size="11.5" class="mono" fill="#2563eb">availableNow micro-batch</text>
+
+  <rect x="400" y="222" width="320" height="104" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="560" y="250" text-anchor="middle" font-size="14" font-weight="600" fill="#1d4ed8">Kafka &#183; behavior_events</text>
+  <text x="560" y="274" text-anchor="middle" font-size="13.5" fill="#1d4ed8">Spark Continuous Streaming</text>
+  <text x="560" y="300" text-anchor="middle" font-size="11.5" class="mono" fill="#2563eb">30s trigger &#183; async</text>
+
+  <rect x="760" y="222" width="320" height="104" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="920" y="252" text-anchor="middle" font-size="14" font-weight="600" fill="#6d28d9">Incremental JDBC Batch</text>
+  <text x="920" y="278" text-anchor="middle" font-size="11.5" class="mono" fill="#7c3aed">Airflow &#183; T-1 schedule</text>
+  <text x="920" y="302" text-anchor="middle" font-size="12" fill="#6d28d9">latest dimension state</text>
+
+  <!-- ingestion -> bronze -->
+  <path d="M200,326 L200,358" fill="none" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrowB)"/>
+  <path d="M560,326 L560,358" fill="none" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrowB)"/>
+  <path d="M920,326 L920,358" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============ BRONZE ============ -->
+  <text x="40" y="350" class="lbl">BRONZE &#183; RAW HISTORICAL LOG</text>
+  <rect x="40" y="360" width="1040" height="66" rx="12" fill="#fdf1e3" stroke="#d9a05b" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="560" y="390" text-anchor="middle" font-size="16" font-weight="600" fill="#92400e">Bronze &#8212; Delta Lake on Amazon S3</text>
+  <text x="560" y="412" text-anchor="middle" font-size="12" class="mono" fill="#b45309">append-only  &#183;  immutable raw  &#183;  full change history of every record</text>
+
+  <!-- bronze -> silver -->
+  <path d="M560,426 C 560,450 300,440 280,460" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============ SILVER & GOLD ============ -->
+  <text x="40" y="452" class="lbl">SILVER &amp; GOLD &#183; CURATED</text>
+  <rect x="40"  y="462" width="480" height="82" rx="12" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="280" y="494" text-anchor="middle" font-size="15" font-weight="600" fill="#334155">Silver &#8212; Cleaned &amp; Standardized</text>
+  <text x="280" y="516" text-anchor="middle" font-size="11.5" class="mono" fill="#475569">dedup &#183; MERGE INTO &#183; SCD Type 1 &#183; latest state</text>
+
+  <rect x="600" y="462" width="480" height="82" rx="12" fill="#fefae8" stroke="#e2c044" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="840" y="494" text-anchor="middle" font-size="15" font-weight="600" fill="#854d0e">Gold &#8212; Pre-aggregated Marts</text>
+  <text x="840" y="516" text-anchor="middle" font-size="11.5" class="mono" fill="#a16207">query-optimized &#183; idempotent partition overwrite</text>
+
+  <!-- silver -> gold -->
+  <text x="560" y="496" text-anchor="middle" font-size="10" class="mono" fill="#a16207">aggregate</text>
+  <path d="M520,503 L596,503" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- silver/gold -> glue -->
+  <path d="M280,544 C 280,570 500,564 505,584" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M840,544 C 840,570 620,564 615,584" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============ CATALOG & QUERY ============ -->
+  <text x="40" y="578" class="lbl">CATALOG &amp; QUERY</text>
+  <rect x="440" y="586" width="240" height="58" rx="12" fill="#ecfeff" stroke="#5eead4" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="560" y="612" text-anchor="middle" font-size="14" font-weight="600" fill="#0f766e">AWS Glue Data Catalog</text>
+  <text x="560" y="632" text-anchor="middle" font-size="11" class="mono" fill="#0e7490">schema registry</text>
+
+  <!-- glue -> athena -->
+  <path d="M560,644 L560,664" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="440" y="666" width="240" height="56" rx="12" fill="#eef2ff" stroke="#a5b4fc" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="560" y="692" text-anchor="middle" font-size="14" font-weight="600" fill="#3730a3">Amazon Athena</text>
+  <text x="560" y="712" text-anchor="middle" font-size="11" class="mono" fill="#4338ca">serverless SQL</text>
+
+  <!-- athena -> consumers -->
+  <path d="M560,722 C 560,740 290,734 290,748" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M560,722 L560,748" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M560,722 C 560,740 830,734 830,748" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============ CONSUMERS ============ -->
+  <text x="40" y="742" class="lbl">CONSUMERS</text>
+  <rect x="180" y="750" width="220" height="54" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="290" y="778" text-anchor="middle" font-size="14" font-weight="600" fill="#166534">Finance</text>
+  <text x="290" y="796" text-anchor="middle" font-size="11" class="mono" fill="#15803d">revenue &#183; revenue-at-risk</text>
+
+  <rect x="450" y="750" width="220" height="54" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="560" y="778" text-anchor="middle" font-size="14" font-weight="600" fill="#166534">Operations</text>
+  <text x="560" y="796" text-anchor="middle" font-size="11" class="mono" fill="#15803d">SLA aging</text>
+
+  <rect x="720" y="750" width="220" height="54" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="830" y="778" text-anchor="middle" font-size="14" font-weight="600" fill="#166534">Growth</text>
+  <text x="830" y="796" text-anchor="middle" font-size="11" class="mono" fill="#15803d">funnel &#183; segmentation</text>
+
+  <!-- Footer -->
+  <text x="560" y="842" text-anchor="middle" font-size="11.5" class="mono" fill="#94a3b8">Delta Lake on Amazon S3   &#183;   Spark Structured Streaming + Kafka (KRaft)   &#183;   Orchestrated by Apache Airflow   &#183;   Queried via Athena + Glue</text>
+</svg>

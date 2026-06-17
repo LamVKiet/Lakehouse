@@ -1,0 +1,39 @@
+# Environment secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv*/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
+
+# Local test scripts
+insert_10m_volume_test.py
+
+# DQ offline artifacts (jars/wheels — baked into Dockerfile.spark at build; kept local for host pytest)
+deequ_offline/
+deequ_offline1/
+
+# Local DQ demo/seed artifacts (not part of the committed pipeline)
+processing/spark_jobs/seed_bronze_cdc_sample.py
+notebooks/02_dq_gate_test.ipynb

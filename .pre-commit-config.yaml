@@ -1,0 +1,11 @@
+# Runs ruff on commit so CI rarely goes red. Install once: `pre-commit install`.
+# Scoped to the CI-checked surface — legacy jobs keep their compact style.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+      - id: ruff           # lint tests + refactored batch_silver jobs (auto-included; legacy *_backfill excluded)
+        args: [--fix]
+        files: ^(tests/.*\.py|processing/spark_jobs/batch_silver_(?!.*backfill).*\.py)$
+      - id: ruff-format    # format only tests/
+        files: ^tests/.*\.py$
